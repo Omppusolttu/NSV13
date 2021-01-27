@@ -11,6 +11,66 @@
 
 /obj/item/ship_weapon/ammunition
 	var/projectile_type = null //What does the projectile look like on the overmap?
+	var/volatility = 0 //Is this ammo likely to go up in flames when hit or burned?
+	var/explode_when_hit = FALSE //If the ammo's volatile, can it be detonated by damage? Or just burning it.
+	var/climb_time = 20 //Time it takes to climb
+	var/climb_stun = 20 //Time to be stunned for after climbing
+	var/climbable = FALSE //Can you climb on it?
+	var/mob/living/climber //Who is climbing on it
+
+/obj/item/ship_weapon/ammunition/Initialize()
+	. = ..()
+	if(volatility > 0)
+		AddComponent(/datum/component/volatile, volatility, explode_when_hit)
+
+/obj/item/ship_weapon/ammunition/MouseDrop_T(atom/movable/O, mob/user)
+	. = ..()
+	if(!climbable)
+		return
+	if(user == O && iscarbon(O))
+		var/mob/living/carbon/C = O
+		if(C.mobility_flags & MOBILITY_MOVE)
+			climb_torp(user)
+			return
+	if(!istype(O, /obj/item) || user.get_active_held_item() != O)
+		return
+	if(iscyborg(user))
+		return
+	if(!user.dropItemToGround(O))
+		return
+	if (O.loc != src.loc)
+		step(O, get_dir(O, src))
+
+/obj/item/ship_weapon/ammunition/proc/do_climb(atom/movable/A)
+	if(climbable)
+		density = FALSE
+		. = step(A,get_dir(A,src.loc))
+		density = TRUE
+
+/obj/item/ship_weapon/ammunition/proc/climb_torp(mob/living/user)
+	src.add_fingerprint(user)
+	user.visible_message("<span class='warning'>[user] starts climbing onto [src].</span>", \
+								"<span class='notice'>You start climbing onto [src]...</span>")
+	var/adjusted_climb_time = climb_time
+	if(user.restrained()) //climbing takes twice as long when restrained.
+		adjusted_climb_time *= 2
+	if(isalien(user))
+		adjusted_climb_time *= 0.25 //aliens are terrifyingly fast
+	if(HAS_TRAIT(user, TRAIT_FREERUNNING)) //do you have any idea how fast I am???
+		adjusted_climb_time *= 0.8
+	climber = user
+	if(do_mob(user, user, adjusted_climb_time))
+		if(src.loc) //Checking if structure has been destroyed
+			if(do_climb(user))
+				user.visible_message("<span class='warning'>[user] climbs onto [src].</span>", \
+									"<span class='notice'>You climb onto [src].</span>")
+				log_combat(user, src, "climbed onto")
+				if(climb_stun)
+					user.Stun(climb_stun)
+				. = 1
+			else
+				to_chat(user, "<span class='warning'>You fail to climb onto [src].</span>")
+	climber = null
 
 /**
  * Ship-to-ship weapons
@@ -93,7 +153,8 @@
  */
 /obj/machinery/ship_weapon/Initialize()
 	. = ..()
-	addtimer(CALLBACK(src, .proc/PostInitialize), 5 SECONDS)
+	PostInitialize()
+	addtimer(CALLBACK(src, .proc/get_ship), 15 SECONDS) //This takes a minute to load...
 
 /**
 *
@@ -102,7 +163,6 @@
 */
 
 /obj/machinery/ship_weapon/proc/PostInitialize()
-	get_ship(error_log=FALSE)
 	if(maintainable)
 		maint_req = rand(20,25) //Setting initial number of cycles until maintenance is required
 		create_reagents(50)
@@ -232,6 +292,16 @@
 	return FALSE
 
 /**
+*Get the ammo / max ammo values for tactical consoles.
+
+*/
+/obj/machinery/ship_weapon/proc/get_max_ammo()
+	return max_ammo
+
+/obj/machinery/ship_weapon/proc/get_ammo()
+	return ammo.len
+
+/**
  * Transitions from STATE_NOTLOADED to STATE_LOADED.
  *
  * Try to load a magazine (obj/A).
@@ -356,9 +426,13 @@
 			LAZYREMOVE(weapon_type.weapons["loaded"] , src)
 
 /obj/machinery/ship_weapon/proc/lazyload()
-	for(var/I = 0; I < max_ammo; I++)
-		var/atom/BB = new ammo_type(src)
-		ammo += BB
+	if(magazine_type)
+		magazine = new magazine_type(src)
+		ammo = magazine.stored_ammo //Lets us handle magazines and single rounds the same way
+	else
+		for(var/I = 0; I < max_ammo; I++)
+			var/atom/BB = new ammo_type(src)
+			ammo += BB
 	safety = FALSE
 	chambered = ammo[1]
 	if(chamber_sound) //This got super annoying on gauss guns, so i've made it only work for the initial "ready to fire" warning.
@@ -468,8 +542,9 @@
 		playsound(src, firing_sound, 100, 1)
 	if(bang)
 		for(var/mob/living/M in get_hearers_in_view(10, get_turf(src))) //Burst unprotected eardrums
-			if(M.stat != DEAD && isliving(M)) //Don't make noise if they're dead
-				M.soundbang_act(1,200,10,15)
+			if(M.get_ear_protection() < 1) //checks for protection - why was this not here before???
+				if(M.stat != DEAD && isliving(M)) //Don't make noise if they're dead
+					M.soundbang_act(1,200,10,15)
 
 /**
  * Handles firing animations and sounds on the overmap.

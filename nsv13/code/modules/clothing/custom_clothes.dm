@@ -51,6 +51,14 @@
 	item_color = "assistant"
 	item_state = "bl_suit"
 
+/obj/item/clothing/under/ship/kiryujumpsuit
+	name = "Kiryu jumpsuit"
+	desc = "A jumpsuit for detectives that wish to look more to the mafia side, however the cigar smell is obvious."
+	icon_state = "kiryujumpsuit"
+	item_color = "kiryujumpsuit"
+	item_state = "bl_suit"
+	can_adjust = TRUE
+
 /obj/item/clothing/suit/ship
 	name = "Placeholder"
 	icon = 'nsv13/icons/obj/clothing/suits.dmi' //Placeholder subtype for our own iconsets
@@ -89,6 +97,12 @@
 	item_state = "peacekeeper_jacket"
 	desc = "A comfortable grey leather jacket. Despite its heavy armour, it's still extremely comfortable to wear."
 
+/obj/item/clothing/suit/ship/peacekeeper/detective
+	name = "DET jacket"
+	desc = "A smart blue jacket, identifying the wearer as a forensics expert."
+	icon_state = "det"
+	item_state = "det"
+
 /obj/item/clothing/suit/ship/peacekeeper/marine
 	name = "NT-4 Marine vest"
 	icon_state = "marine"
@@ -100,6 +114,18 @@
 	name = "Officer's dress jacket"
 	desc = "A rather heavy jacket of a reasonable quality. It's not the most comfortable thing you could wear, but it's remained part of an officer's uniform for quite some time."
 	icon_state = "officer_jacket"
+
+/obj/item/clothing/suit/ship/engineer
+	name = "Engineering webbing"
+	desc = "A basic storage vest which allows you to store a few small tools"
+	icon_state = "engineer_vest"
+	allowed = list(/obj/item/wrench, /obj/item/weldingtool, /obj/item/wirecutters, /obj/item/screwdriver, /obj/item/extinguisher, /obj/item/crowbar, /obj/item/analyzer, /obj/item/multitool, /obj/item/modular_computer/tablet)
+
+/obj/item/clothing/suit/ship/kiryujacket
+	name = "Kiryu jacket"
+	desc = "A jacket for a detective that wishes to look more to the mafia side, just by looking at it you can smell the cigars that have been smoked with it."
+	icon_state = "kiryujacket"
+	item_state = "kiryujacket"
 
 /obj/item/clothing/suit/ship/engineer
 	name = "Engineering webbing"
@@ -183,11 +209,7 @@
 	item_state = "pilot_helmet"
 	item_color = "pilot_helmet"
 	desc = "A lightweight space-helmet designed to protect fighter pilots in combat situations."
-	armor = list("melee" = 20, "bullet" = 30, "laser" = 10, "energy" = 10, "bomb" = 70, "bio" = 100, "rad" = 50, "fire" = 100, "acid" = 100)
-	resistance_flags = FIRE_PROOF | ACID_PROOF
-	flags_inv = HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR //we want to see the mask
-	heat_protection = HEAD
-	max_heat_protection_temperature = FIRE_IMMUNITY_MAX_TEMP_PROTECT
+	armor = list("melee" = 20, "bullet" = 12, "laser" = 10, "energy" = 10, "bomb" = 10, "bio" = 100, "rad" = 50, "fire" = 80, "acid" = 75)
 
 /obj/item/clothing/suit/space/hardsuit/pilot
 	name = "fighter pilot flightsuit"
@@ -198,10 +220,7 @@
 	item_state = "pilot"
 	item_color = "pilot"
 	helmettype = /obj/item/clothing/head/helmet/space/hardsuit/pilot
-	armor = list("melee" = 40, "bullet" = 50, "laser" = 50, "energy" = 25, "bomb" = 50, "bio" = 100, "rad" = 50, "fire" = 100, "acid" = 100)
-	resistance_flags = FIRE_PROOF | ACID_PROOF
-	heat_protection = CHEST|GROIN|LEGS|FEET|ARMS|HANDS
-	max_heat_protection_temperature = FIRE_IMMUNITY_MAX_TEMP_PROTECT //this needed to be added a long fucking time ago
+	armor = list("melee" = 20, "bullet" = 12, "laser" = 10, "energy" = 10, "bomb" = 10, "bio" = 100, "rad" = 50, "fire" = 90, "acid" = 75)
 
 /obj/item/clothing/under/ship/pilot
 	name = "Pilot's combat jumpsuit"
@@ -330,6 +349,17 @@
 	new /obj/item/wirecutters(src, "red")
 	new /obj/item/multitool(src)
 
+/obj/item/clothing/shoes/ship
+	name = "Placeholder"
+	icon = 'nsv13/icons/obj/clothing/shoes.dmi' //Placeholder subtype for our own iconsets
+	alternate_worn_icon = 'nsv13/icons/mob/feet.dmi'
+
+/obj/item/clothing/shoes/ship/kiryushoes
+	name = "Kiryu shoes"
+	desc = "A pair of shoes for the detectives that want to look like mafia, there is some sticky substance on the sole that has formed from various crime scenes."
+	icon_state = "kiryushoes"
+	item_state = "kiryushoes"
+
 /obj/item/clothing/shoes/clown_shoes/delinquent
 	name = "Delinquent's shoes"
 	icon = 'nsv13/icons/obj/clothing/shoes.dmi'
@@ -431,6 +461,24 @@
 
 /obj/item/clothing/head/helmet/decktech/attack_self(mob/user)
 	weldingvisortoggle(user)
+
+/obj/item/clothing/suit/ship/munitions_jacket
+	name = "Munitions technician jacket"
+	desc = "The standard uniform of a Munitions Technician. Contains high vis orange, while remaining black."
+	icon_state = "munitions_jacket"
+	item_state = "munitions_jacket"
+
+/obj/item/clothing/suit/ship/maa_jacket
+	name = "Master-At-Arm's formal jacket"
+	desc = "The formal uniform of the Master-At-Arms. Vibrant high vis orange, sleek stylish black."
+	icon_state = "maa_jacket"
+	item_state = "maa_jacket"
+
+/obj/item/clothing/head/ship/maa_hat
+	name = "Master-At-Arm's hat"
+	desc = "The Master-At-Arm's authorative hat."
+	icon_state = "maa_hat"
+	item_state = "maa_hat"
 
 /obj/item/clothing/under/ship/syndicate_tech
 	name = "Syndicate technician jumpsuit"
@@ -586,7 +634,7 @@
 	icon_state = "trekjacket_formal"
 	item_color = "trekjacket_formal"
 	item_state = "trekjacket_formal"
-
+ 
 /datum/action/item_action/nsv13_jacket_swap
 	name = "Toggle jacket style"
 	desc = "Display or hide your departmental colours for your suit jacket by reversing its shoulder pads."

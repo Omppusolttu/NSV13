@@ -26,6 +26,35 @@
 	var/obj/machinery/portable_atmospherics/canister/internal_tank //Internal air tank reference. Used mostly in small ships. If you want to sabotage a fighter, load a plasma tank into its cockpit :)
 	var/pdc_mode = FALSE
 	var/last_pdc_fire = 0 //Pdc cooldown
+	var/BeingLoaded //Used for gunner load
+
+#define VV_HK_REMOVE_GAUSS_GUNNER "getOutOfMyGunIdiot"
+
+/obj/machinery/ship_weapon/gauss_gun/vv_get_dropdown()
+	. = ..()
+	VV_DROPDOWN_OPTION(VV_HK_REMOVE_GAUSS_GUNNER, "Remove Gunner")
+
+/obj/machinery/ship_weapon/gauss_gun/vv_do_topic(list/href_list)
+	. = ..()
+	if(href_list[VV_HK_REMOVE_GAUSS_GUNNER])
+		if(!check_rights(NONE))
+			return
+		remove_gunner()
+
+/obj/machinery/ship_weapon/gauss_gun/powered(chan)
+	if(!loc)
+		return FALSE
+	if(!use_power)
+		return TRUE
+
+	var/area/A = get_area(src)		// make sure it's in an area
+	if(ammo_rack) //Ammo racks go below in the bit that's actually powered.
+		A = get_area(ammo_rack)
+	if(!A)
+		return FALSE					// if not, then not powered
+	if(chan == -1)
+		chan = power_channel
+	return A.powered(chan)	// return power status of the area
 
 //Verbs//
 
@@ -46,8 +75,7 @@
 
 	if(usr.incapacitated())
 		return
-	gunner = usr //failsafe.
-	linked.start_piloting(usr, "gauss_gunner")
+	set_gunner(usr)
 	to_chat(gunner, "<span class='notice'>You reach for [src]'s gun camera controls.</span>")
 
 /obj/machinery/ship_weapon/gauss_gun/verb/exit()
@@ -131,13 +159,14 @@
 /obj/machinery/ship_weapon/gauss_gun/proc/set_gunner(mob/user)
 	user.forceMove(src)
 	gunner = user
+	gunner.AddComponent(/datum/component/overmap_gunning, src)
 	ui_interact(user)
-	linked.start_piloting(user, "gauss_gunner")
 
 /obj/machinery/ship_weapon/gauss_gun/proc/remove_gunner()
 	if(gunner_chair)
 		lower_chair()
 		return FALSE
+	gunner.unfuck_overmap() //Just in case they didn't cancel camera view or whatever.
 	gunner.forceMove(get_turf(src))
 	gunner = null
 
@@ -152,7 +181,19 @@
 /obj/machinery/ship_weapon/gauss_gun/west
 	dir = WEST
 
+/obj/machinery/ship_weapon/gauss_gun/proc/GunnerLoad()
+	if(BeingLoaded)
+		to_chat(gunner, "<span class='notice'>[src]'s loading systems are on cooldown!</span>")
+		return
+	to_chat(gunner, "<span class='notice'>Loading ammunition</span>")
+	BeingLoaded = 1
+	src.raise_rack()
+	sleep(5 SECONDS)
+	BeingLoaded = 0
+
 /obj/machinery/ship_weapon/gauss_gun/proc/onClick(atom/target)
+	if(ammo.len<1)
+		src.GunnerLoad()
 	if(pdc_mode && world.time >= last_pdc_fire + 2 SECONDS)
 		linked.fire_weapon(target=target, mode=FIRE_MODE_PDC)
 		last_pdc_fire = world.time
@@ -395,7 +436,7 @@ Chair + rack handling
 	occupant = null
 
 /obj/structure/chair/comfy/gauss/user_buckle_mob(mob/living/M, mob/user, check_loc = TRUE)
-	if(!gun?.allowed(M) || !M.client)
+	if((gun && !gun.allowed(M)) || !M.client)
 		var/sound = pick('nsv13/sound/effects/computer/error.ogg','nsv13/sound/effects/computer/error2.ogg','nsv13/sound/effects/computer/error3.ogg')
 		playsound(src, sound, 100, 1)
 		to_chat(user, "<span class='warning'>Access denied</span>")
@@ -452,6 +493,7 @@ Chair + rack handling
 /obj/machinery/ship_weapon/gauss_gun/proc/lower_chair()
 	if(!gunner_chair || gunner_chair.loc != src)
 		return FALSE
+	gunner.unfuck_overmap() //Just in case they didn't cancel camera view or whatever.
 	var/mob/M = gunner
 	var/turf/below = SSmapping.get_turf_below(src)
 	gunner_chair.forceMove(below)

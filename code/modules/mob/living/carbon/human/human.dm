@@ -78,6 +78,15 @@
 				stat(null, "Hivemind Vessels: [hivemind.hive_size] (+[hivemind.size_mod])")
 				stat(null, "Psychic Link Duration: [(hivemind.track_bonus + TRACKER_DEFAULT_TIME)/10] seconds")
 
+		var/mob/living/carbon/human/H = usr
+
+		if(istype(H))
+			var/datum/species/ethereal/eth_species = H.dna?.species
+			if(istype(eth_species))
+				var/obj/item/organ/stomach/ethereal/stomach = H.getorganslot(ORGAN_SLOT_STOMACH)
+				if(istype(stomach))
+					stat(null, "Crystal Charge: [(round(stomach.crystal_charge, 0.1) / ETHEREAL_CHARGE_FULL)*100]%")
+
 	//NINJACODE
 	if(istype(wear_suit, /obj/item/clothing/suit/space/space_ninja)) //Only display if actually a ninja.
 		var/obj/item/clothing/suit/space/space_ninja/SN = wear_suit
@@ -89,7 +98,7 @@
 				stat(null, "Energy Charge: [round(SN.cell.charge/100)]%")
 				stat(null, "Smoke Bombs: \Roman [SN.s_bombs]")
 				//Ninja status
-				stat(null, "Fingerprints: [md5(dna.uni_identity)]")
+				stat(null, "Fingerprints: [rustg_hash_string(RUSTG_HASH_MD5, dna.uni_identity)]")
 				stat(null, "Unique Identity: [dna.unique_enzymes]")
 				stat(null, "Overall Status: [stat > 1 ? "dead" : "[health]% healthy"]")
 				stat(null, "Nutrition Status: [nutrition]")
@@ -207,8 +216,11 @@
 // this could be made more general, but for now just handle mulebot
 /mob/living/carbon/human/Crossed(atom/movable/AM)
 	var/mob/living/simple_animal/bot/mulebot/MB = AM
+	var/obj/vehicle/sealed/car/C = AM
 	if(istype(MB))
 		MB.RunOver(src)
+	else if(istype(C))
+		C.RunOver(src)
 
 	. = ..()
 	spreadFire(AM)
@@ -452,8 +464,8 @@
 									switch(alert("What crime would you like to add?","Security HUD","Minor Crime","Major Crime","Cancel"))
 										if("Minor Crime")
 											if(R)
-												var/t1 = stripped_input("Please input minor crime names:", "Security HUD", "", null)
-												var/t2 = stripped_multiline_input("Please input minor crime details:", "Security HUD", "", null)
+												var/t1 = stripped_input(usr, "Please input minor crime names:", "Security HUD")
+												var/t2 = stripped_multiline_input(usr, "Please input minor crime details:", "Security HUD")
 												if(R)
 													if (!t1 || !t2 || !allowed_access)
 														return
@@ -468,8 +480,8 @@
 													return
 										if("Major Crime")
 											if(R)
-												var/t1 = stripped_input("Please input major crime names:", "Security HUD", "", null)
-												var/t2 = stripped_multiline_input("Please input major crime details:", "Security HUD", "", null)
+												var/t1 = stripped_input(usr, "Please input major crime names:", "Security HUD")
+												var/t2 = stripped_multiline_input(usr, "Please input major crime details:", "Security HUD")
 												if(R)
 													if (!t1 || !t2 || !allowed_access)
 														return
@@ -499,7 +511,7 @@
 
 								if(href_list["add_comment"])
 									if(R)
-										var/t1 = stripped_multiline_input("Add Comment:", "Secure. records", null, null)
+										var/t1 = stripped_multiline_input(usr, "Add Comment:", "Secure. records")
 										if(R)
 											if (!t1 || !allowed_access)
 												return
@@ -612,7 +624,10 @@
 	//Agent cards lower threatlevel.
 	if(istype(idcard, /obj/item/card/id/syndicate))
 		threatcount -= 5
-
+	
+	//individuals wearing tinfoil hats are 30% more likely to be criminals
+	if(istype(get_item_by_slot(SLOT_HEAD), /obj/item/clothing/head/foilhat))
+		threatcount += 2
 	return threatcount
 
 
